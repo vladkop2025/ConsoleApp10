@@ -10,6 +10,7 @@ namespace ConsoleApp10
     {
         static void Main(string[] args)
         {
+            //Модуль 10. Интерфейсы
         }
     }
 }
