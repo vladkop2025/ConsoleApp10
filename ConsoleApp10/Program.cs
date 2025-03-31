@@ -161,13 +161,7 @@ namespace ConsoleApp10
 
             */
 
-        public interface IDevice
-        {
-            void TurnOn();
-            void TurnOff();
-        }
-
-        IFile file = new FileInfo();
+            IFile file = new FileInfo();
             IBinaryFile binaryfile = new FileInfo();
             FileInfo fileinfo = new FileInfo();
 
