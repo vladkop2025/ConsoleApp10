@@ -1,84 +1,55 @@
-﻿using System;
-
-namespace ConsoleApp10
+﻿namespace CalculatorApp
 {
-    class Program
+    using System;
+    using CalculatorApp.Interfaces;
+    using CalculatorApp.Services;
+
+    /// <summary>
+    /// Console calculator application
+    /// </summary>
+    public static class Program
     {
-        static void Main(string[] args)
+        /// <summary>
+        /// Application entry point
+        /// </summary>
+        public static void Main()
         {
             ILogger logger = new Logger();
             IAdder adder = new Calculator(logger);
 
-            Console.WriteLine("Мини-калькулятор для сложения двух чисел");
+            Console.WriteLine("Console Calculator Application");
+            RunCalculatorLoop(adder, logger);
+        }
 
+        private static void RunCalculatorLoop(IAdder adder, ILogger logger)
+        {
             while (true)
             {
                 try
                 {
-                    logger.Event("Начало новой операции");
+                    logger.Event("Starting new calculation");
 
-                    // Ввод первого числа
-                    double num1;
-                    while (true)
-                    {
-                        Console.Write("Введите первое число (или 'q' для выхода): ");
-                        string input1 = Console.ReadLine();
+                    double num1 = GetNumberFromUser("Enter first number (or 'q' to quit): ", logger);
+                    double num2 = GetNumberFromUser("Enter second number: ", logger);
 
-                        if (input1.ToLower() == "q")
-                        {
-                            logger.Event("Пользователь завершил работу программы");
-                            return;
-                        }
-
-                        try
-                        {
-                            num1 = ParseNumber(input1, logger);
-                            logger.Event($"Получено первое число: {num1}");
-                            break;
-                        }
-                        catch (FormatException)
-                        {
-                            string errorMessage = "Ошибка: Введено некорректное число!";
-                            logger.Error(errorMessage);
-                            Console.WriteLine(errorMessage + "\n");
-                        }
-                    }
-
-                    // Ввод второго числа (с повторением при ошибке)
-                    double num2;
-                    while (true)
-                    {
-                        try
-                        {
-                            Console.Write("Введите второе число: ");
-                            num2 = ParseNumber(Console.ReadLine(), logger);
-                            logger.Event($"Получено второе число: {num2}");
-                            break;
-                        }
-                        catch (FormatException)
-                        {
-                            string errorMessage = "Ошибка: Введено некорректное число!";
-                            logger.Error(errorMessage);
-                            Console.WriteLine(errorMessage + "\n");
-                        }
-                    }
-
-                    // Выполнение операции
                     double result = adder.Add(num1, num2);
-                    Console.WriteLine($"\nРезультат: {result}\n");
-                    logger.Event($"Операция успешно завершена. Результат: {result}");
+                    Console.WriteLine($"\nResult: {result}\n");
+                    logger.Event($"Calculation completed. Result: {result}");
+                }
+                catch (OperationCanceledException)
+                {
+                    logger.Event("User terminated the application");
+                    return;
                 }
                 catch (OverflowException)
                 {
-                    string errorMessage = "Ошибка: Переполнение при выполнении операции!";
-                    logger.Error(errorMessage);
-                    Console.WriteLine(errorMessage + "\n");
+                    logger.Error("Calculation resulted in overflow");
+                    Console.WriteLine("Error: Calculation overflow!\n");
                 }
                 catch (Exception ex)
                 {
-                    string errorMessage = $"Неизвестная ошибка: {ex.Message}";
-                    logger.Error(errorMessage);
-                    Console.WriteLine(errorMessage + "\n");
+                    logger.Error($"Unexpected error: {ex.Message}");
+                    Console.WriteLine($"Error: {ex.Message}\n");
                 }
                 finally
                 {
@@ -87,71 +58,27 @@ namespace ConsoleApp10
             }
         }
 
-        static double ParseNumber(string input, ILogger logger)
+        private static double GetNumberFromUser(string prompt, ILogger logger)
         {
-            if (!double.TryParse(input, out double number))
+            while (true)
             {
-                logger.Error($"Некорректный ввод: {input}");
-                throw new FormatException();
-            }
-            return number;
-        }
-    }
+                Console.Write(prompt);
+                string input = Console.ReadLine()?.Trim() ?? string.Empty;
 
-    public interface ILogger
-    {
-        void Event(string message);
-        void Error(string message);
-    }
-
-    public class Logger : ILogger
-    {
-        public void Error(string message)
-        {
-            Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine($"[ERROR] {DateTime.Now:HH:mm:ss}: {message}");
-            Console.ResetColor();
-        }
-
-        public void Event(string message)
-        {
-            Console.ForegroundColor = ConsoleColor.Blue;
-            Console.WriteLine($"[EVENT] {DateTime.Now:HH:mm:ss}: {message}");
-            Console.ResetColor();
-        }
-    }
-
-    public interface IAdder
-    {
-        double Add(double a, double b);
-    }
-
-    public class Calculator : IAdder
-    {
-        private readonly ILogger _logger;
-
-        public Calculator(ILogger logger)
-        {
-            _logger = logger;
-        }
-
-        public double Add(double a, double b)
-        {
-            _logger.Event($"Выполняется сложение: {a} + {b}");
-
-            try
-            {
-                checked
+                if (input.Equals("q", StringComparison.OrdinalIgnoreCase))
                 {
-                    double result = a + b;
-                    _logger.Event("Сложение выполнено успешно");
-                    return result;
+                    logger.Event("User requested exit");
+                    throw new OperationCanceledException();
                 }
-            }
-            catch (OverflowException ex)
-            {
-                _logger.Error($"Переполнение при сложении {a} и {b}");
-                throw;
+
+                if (double.TryParse(input, out double number))
+                {
+                    logger.Event($"Valid number entered: {number}");
+                    return number;
+                }
+
+                logger.Error($"Invalid number input: {input}");
+                Console.WriteLine("Error: Invalid number format. Please try again.\n");
             }
         }
     }
