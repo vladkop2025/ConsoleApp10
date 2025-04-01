@@ -6,10 +6,7 @@ namespace ConsoleApp10
     {
         static void Main(string[] args)
         {
-            // Создаем логгер
             ILogger logger = new Logger();
-
-            // Внедряем логгер в калькулятор
             IAdder adder = new Calculator(logger);
 
             Console.WriteLine("Мини-калькулятор для сложения двух чисел");
@@ -20,31 +17,56 @@ namespace ConsoleApp10
                 {
                     logger.Event("Начало новой операции");
 
-                    Console.Write("Введите первое число (или 'q' для выхода): ");
-                    string input1 = Console.ReadLine();
-
-                    if (input1.ToLower() == "q")
+                    // Ввод первого числа
+                    double num1;
+                    while (true)
                     {
-                        logger.Event("Пользователь завершил работу программы");
-                        break;
+                        Console.Write("Введите первое число (или 'q' для выхода): ");
+                        string input1 = Console.ReadLine();
+
+                        if (input1.ToLower() == "q")
+                        {
+                            logger.Event("Пользователь завершил работу программы");
+                            return;
+                        }
+
+                        try
+                        {
+                            num1 = ParseNumber(input1, logger);
+                            logger.Event($"Получено первое число: {num1}");
+                            break;
+                        }
+                        catch (FormatException)
+                        {
+                            string errorMessage = "Ошибка: Введено некорректное число!";
+                            logger.Error(errorMessage);
+                            Console.WriteLine(errorMessage + "\n");
+                        }
                     }
 
-                    double num1 = ParseNumber(input1, logger);
-                    logger.Event($"Получено первое число: {num1}");
+                    // Ввод второго числа (с повторением при ошибке)
+                    double num2;
+                    while (true)
+                    {
+                        try
+                        {
+                            Console.Write("Введите второе число: ");
+                            num2 = ParseNumber(Console.ReadLine(), logger);
+                            logger.Event($"Получено второе число: {num2}");
+                            break;
+                        }
+                        catch (FormatException)
+                        {
+                            string errorMessage = "Ошибка: Введено некорректное число!";
+                            logger.Error(errorMessage);
+                            Console.WriteLine(errorMessage + "\n");
+                        }
+                    }
 
-                    Console.Write("Введите второе число: ");
-                    double num2 = ParseNumber(Console.ReadLine(), logger);
-                    logger.Event($"Получено второе число: {num2}");
-
+                    // Выполнение операции
                     double result = adder.Add(num1, num2);
                     Console.WriteLine($"\nРезультат: {result}\n");
                     logger.Event($"Операция успешно завершена. Результат: {result}");
-                }
-                catch (FormatException)
-                {
-                    string errorMessage = "Ошибка: Введено некорректное число!";
-                    logger.Error(errorMessage);
-                    Console.WriteLine(errorMessage + "\n");
                 }
                 catch (OverflowException)
                 {
@@ -63,9 +85,6 @@ namespace ConsoleApp10
                     Console.WriteLine("--------------------------");
                 }
             }
-
-            Console.WriteLine("Работа калькулятора завершена. Нажмите любую клавишу...");
-            Console.ReadKey();
         }
 
         static double ParseNumber(string input, ILogger logger)
@@ -111,7 +130,6 @@ namespace ConsoleApp10
     {
         private readonly ILogger _logger;
 
-        // Внедрение зависимости через конструктор
         public Calculator(ILogger logger)
         {
             _logger = logger;
